@@ -1,5 +1,7 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/paper-styles/paper-styles.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
 <link rel="import" href="../bower_components/vaadin-grid/vaadin-grid.html">
 <link rel="import" href="../bower_components/vaadin-date-picker/vaadin-date-picker.html">
 
@@ -102,6 +104,26 @@
             </div>
         </nav>
 
+        <iron-ajax
+            id="createExpenseAjax"
+            url="/api/expenses"
+            method="POST"
+            content-type="application/json"
+            body="{{_newExpense}}"
+            handle-as="json"
+            on-response="_onCreateExpenseSuccess"
+            on-error="_onCreateExpenseError">
+        </iron-ajax>
+
+        <iron-ajax
+                id="deleteExpenseAjax"
+                url='{{_deleteExpenseUrl}}'
+                method="DELETE"
+                handle-as="json"
+                on-response="_onDeleteExpenseSuccess"
+                on-error="_onDeleteExpenseError">
+        </iron-ajax>
+
 
         <div class="container">
             <div class="section">
@@ -165,8 +187,13 @@
 
             _newExpenseDateParsed: {
                 type: Date,
-                computed: '_parseDateString(_newExpenseDate)'
+                computed: '_parseDateStringToObject(_newExpenseDate)'
             },
+
+            _deleteExpenseUrl: {
+                type: String,
+                computed: '_getDeleteExpenseUrl(_expenseIdToDelete)'
+            }
         },
 
         observers: [
@@ -178,32 +205,69 @@
         },
 
         _addExpense: function(e) {
-            this.push('expenses', {
-                date: this._parseDateObject(this._newExpenseDateParsed),
+            this._newExpense = {
+                date: this._newExpenseDateParsed.getTime(),
                 description: this._newExpenseDescription,
                 amount: this._newExpenseAmount
-            });
+            };
+
+            this.$.createExpenseAjax.generateRequest();
+        },
+
+        _onCreateExpenseSuccess: function(e) {
+            let newExpense = e.detail.response;
+            newExpense.date = this._parseEpochTimeToString(newExpense.date);
+
+            this.push('expenses', newExpense);
 
             this._newExpenseDate = null;
             this._newExpenseDescription = null;
             this._newExpenseAmount = null;
         },
 
-        _removeExpense: function(e) {
-            let index = this.expenses.indexOf(e.model.item);
-            this.splice('expenses', index, 1);
+        _onCreateExpenseError: function(e) {
+            console.error("Couldn't create expense!");
+            console.error(e);
         },
 
-        _parseDateString: function(date) {
+        _removeExpense: function(e) {
+            let expenseToRemove = e.model.item;
+            this._expenseIdToDelete = expenseToRemove.id;
+
+            this.$.deleteExpenseAjax.generateRequest();
+
+            this._indexOfExpenseToRemove = this.expenses.indexOf(e.model.item);
+        },
+
+        _onDeleteExpenseSuccess: function(e) {
+            this.splice('expenses', this._indexOfExpenseToRemove, 1);
+        },
+
+        _onDeleteExpenseError: function(e) {
+            console.error("Couldn't delete expense!");
+            console.error(e);
+        },
+
+
+
+        _getDeleteExpenseUrl: function(expenseId) {
+            return "/api/expenses/" + expenseId;
+        },
+
+        _parseDateStringToObject: function(date) {
             if (date != null) {
                 let dateParts = date.split('-');
                 return new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1 , parseInt(dateParts[2]));
             }
         },
 
-        _parseDateObject: function(date) {
+        _parseDateObjectToString: function(date) {
             let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+        },
+
+        _parseEpochTimeToString: function(epochTime) {
+            return this._parseDateObjectToString(new Date(epochTime));
         },
 
         _truncateNewExpenseAmount: function(amount) {

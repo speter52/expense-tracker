@@ -1,7 +1,9 @@
 // app/routes.js
 
-var path = require('path');
-var express  = require('express');
+let path = require('path');
+let express  = require('express');
+
+let expenseService = require('./expense-service');
 
 module.exports = function(app, passport) {
 
@@ -78,8 +80,12 @@ module.exports = function(app, passport) {
     app.use(isLoggedIn, express.static(path.join(__dirname, '../public')));
 
     app.post('/api/expenses', isLoggedIn, function(req, res) {
-
+    	expenseService.createExpense(req.body, req.user, res);
 	});
+
+    app.delete('/api/expenses/:id', isLoggedIn, function(req, res) {
+        expenseService.deleteExpense(req.params.id, req.user, res);
+    })
 };
 
 // route middleware to make sure
