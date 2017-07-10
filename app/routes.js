@@ -79,6 +79,10 @@ module.exports = function(app, passport) {
 
     app.use(isLoggedIn, express.static(path.join(__dirname, '../public')));
 
+    app.get('/api/expenses', isLoggedIn, function(req, res) {
+        expenseService.getExpenses(req.user, res);
+    });
+
     app.post('/api/expenses', isLoggedIn, function(req, res) {
     	expenseService.createExpense(req.body, req.user, res);
 	});

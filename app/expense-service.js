@@ -6,6 +6,25 @@ let connection = mysql.createConnection(dbconfig.connection);
 connection.query('USE ' + dbconfig.database);
 
 module.exports = {
+    getExpenses: function(user, res) {
+        let getQuery = "SELECT * FROM expenses";
+        if (user.role != "admin") { // TODO: Refactor comparison warning
+            getQuery += ` WHERE username = "${user.username}"`;
+        }
+
+        console.debug(`Retrieving all expenses for user ${user.username}...`);
+        connection.query(getQuery, function (err, rows) {
+            if (err) {
+                console.error("Couldn't read expenses!");
+                console.error(err);
+                res.status(500).send({error: "Couldn't get expenses."});
+            }
+
+            console.log(`Successfully retrieved expenses for user ${user.username}`);
+            res.status(200).send(rows);
+        })
+
+    },
 
     createExpense: function(expense, user, res) {
         let expenseUuid = uuid();

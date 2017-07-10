@@ -6,6 +6,7 @@
 <link rel="import" href="../bower_components/vaadin-date-picker/vaadin-date-picker.html">
 
 <dom-module id="expense-tracker-app">
+    <!-- TODO: Break up into separate components -->
     <template>
         <style>
             vaadin-grid {
@@ -105,6 +106,16 @@
         </nav>
 
         <iron-ajax
+                auto
+                id="readExpenseAjax"
+                url="/api/expenses"
+                method="GET"
+                handle-as="json"
+                on-response="_onReadExpenseSuccess"
+                on-error="_onReadExpenseError">
+        </iron-ajax>
+
+        <iron-ajax
             id="createExpenseAjax"
             url="/api/expenses"
             method="POST"
@@ -155,19 +166,20 @@
                 <div class="row">
                     <div class="col s6">
                         <vaadin-grid id="material" aria-label="Expenses" items='{{expenses}}'>
-                            <vaadin-grid-column>
+                            <vaadin-grid-column resizable>
                                 <template class="header">Date</template>
-                                <template>[[item.date]]</template>
+                                <template>[[_parseEpochTimeToString(item.date)]]</template>
                             </vaadin-grid-column>
-                            <vaadin-grid-column>
+                            <vaadin-grid-column resizable>
                                 <template class="header">Description</template>
                                 <template>[[item.description]]</template>
                             </vaadin-grid-column>
-                            <vaadin-grid-column>
+                            <vaadin-grid-column resizable>
                                 <template class="header">Amount</template>
                                 <template>$[[item.amount]]</template>
                             </vaadin-grid-column>
-                            <vaadin-grid-column>
+                            <vaadin-grid-column resizable>
+                                <!-- TODO: Icon needs to show as clickable on hover -->
                                 <template><i class="material-icons" on-tap="_removeExpense">delete</i></template>
                             </vaadin-grid-column>
                         </vaadin-grid>
@@ -204,6 +216,15 @@
             this.expenses = [];
         },
 
+        _onReadExpenseSuccess: function(e) {
+            this.expenses = e.detail.response;
+        },
+
+        _onReadExpenseError: function(e) {
+            console.error("Couldn't get expenses!");
+            console.error(e);
+        },
+
         _addExpense: function(e) {
             this._newExpense = {
                 date: this._newExpenseDateParsed.getTime(),
@@ -216,7 +237,7 @@
 
         _onCreateExpenseSuccess: function(e) {
             let newExpense = e.detail.response;
-            newExpense.date = this._parseEpochTimeToString(newExpense.date);
+            newExpense.date = this._parseEpochTimeToString(newExpense.date * 1000);
 
             this.push('expenses', newExpense);
 
@@ -248,8 +269,6 @@
             console.error(e);
         },
 
-
-
         _getDeleteExpenseUrl: function(expenseId) {
             return "/api/expenses/" + expenseId;
         },
@@ -267,7 +286,9 @@
         },
 
         _parseEpochTimeToString: function(epochTime) {
-            return this._parseDateObjectToString(new Date(epochTime));
+            if (epochTime != null) { // TODO: Fix comparison warnings
+                return this._parseDateObjectToString(new Date(epochTime/1000)); // TODO: Bug - all the dates are set to Jan 18, 1970
+            }
         },
 
         _truncateNewExpenseAmount: function(amount) {
@@ -275,6 +296,5 @@
                 this._newExpenseAmount = parseInt(this._newExpenseAmount).toFixed(2);
             }
         },
-
     });
 </script>
