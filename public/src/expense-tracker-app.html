@@ -97,13 +97,12 @@
             <div class="nav-wrapper blue">
                 <a href="#" class="brand-logo" style="padding-left: 1vw;">Expense Tracker</a>
                 <ul id="nav-mobile" class="right hide-on-med-and-down">
-                    <li><a href="#">Logout</a></li>
+                    <li><a href="/logout">Logout</a></li>
                 </ul>
             </div>
         </nav>
 
-        <div>
-        </div>
+
         <div class="container">
             <div class="section">
                     <h5>New Expense</h5>
@@ -111,19 +110,19 @@
                         <div class="row">
                             <div class="col s2">
                                 <label for="date">Date</label>
-                                <input id="date" type="date" class="datepicker">
+                                <input id="date" type="date" class="datepicker" value="{{_newExpenseDate::change}}">
                             </div>
                             <div class="col s8">
                                 <label for="description">Description</label>
-                                <input id="description" type="text">
+                                <input id="description" type="text" value="{{_newExpenseDescription::change}}">
                             </div>
                             <div class="col s2">
                                 <label for="amount">Amount (USD)</label>
-                                <input id="amount" type="text">
+                                <input id="amount" type="text" value="{{_newExpenseAmount::change}}">
                             </div>
                         </div>
                         <div class="row">
-                            <a class="waves-effect waves-light btn col s1 offset-s11 blue"><i class="material-icons left">note_add</i>Add</a>
+                            <a class="waves-effect waves-light btn col s1 offset-s11 blue" on-tap="_addExpense"><i class="material-icons left">note_add</i>Add</a>
                         </div>
                     </form>
             </div>
@@ -144,10 +143,10 @@
                             </vaadin-grid-column>
                             <vaadin-grid-column>
                                 <template class="header">Amount</template>
-                                <template>[[item.amount]]</template>
+                                <template>$[[item.amount]]</template>
                             </vaadin-grid-column>
                             <vaadin-grid-column>
-                                <template><i class="material-icons">delete</i></template>
+                                <template><i class="material-icons" on-tap="_removeExpense">delete</i></template>
                             </vaadin-grid-column>
                         </vaadin-grid>
                     </div>
@@ -155,7 +154,6 @@
 
             </div>
         </div>
-
     </template>
 </dom-module>
 
@@ -163,26 +161,56 @@
     Polymer({
         is: "expense-tracker-app",
         properties: {
-            expenses: Array
+            expenses: Array,
+
+            _newExpenseDateParsed: {
+                type: Date,
+                computed: '_parseDateString(_newExpenseDate)'
+            },
         },
+
+        observers: [
+            '_truncateNewExpenseAmount(_newExpenseAmount)',
+        ],
+
         ready: function(e){
-            this.expenses = [
-                {
-                    date: "Jan 1, 1971",
-                    description: "Car",
-                    amount: "$10,000"
-                },
-                {
-                    date: "Jan 1, 1971",
-                    description: "Dog",
-                    amount: "$10,000"
-                },
-                {
-                    date: "Jan 1, 1971",
-                    description: "Cat",
-                    amount: "$10,000"
-                }
-            ];
-        }
+            this.expenses = [];
+        },
+
+        _addExpense: function(e) {
+            this.push('expenses', {
+                date: this._parseDateObject(this._newExpenseDateParsed),
+                description: this._newExpenseDescription,
+                amount: this._newExpenseAmount
+            });
+
+            this._newExpenseDate = null;
+            this._newExpenseDescription = null;
+            this._newExpenseAmount = null;
+        },
+
+        _removeExpense: function(e) {
+            let index = this.expenses.indexOf(e.model.item);
+            this.splice('expenses', index, 1);
+        },
+
+        _parseDateString: function(date) {
+            if (date != null) {
+                let dateParts = date.split('-');
+                return new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1 , parseInt(dateParts[2]));
+            }
+        },
+
+        _parseDateObject: function(date) {
+            let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+        },
+
+        _truncateNewExpenseAmount: function(amount) {
+            if (amount != null) {
+                this._newExpenseAmount = parseInt(this._newExpenseAmount).toFixed(2);
+            }
+        },
+
     });
 </script>

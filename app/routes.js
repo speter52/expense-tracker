@@ -76,9 +76,10 @@ module.exports = function(app, passport) {
 	});
 
     app.use(isLoggedIn, express.static(path.join(__dirname, '../public')));
-    // app.get('/*', isLoggedIn, function(req, res) {
-	 //    res.sendFile(path.resolve('public/index.html'));
-    // });
+
+    app.post('/api/expenses', isLoggedIn, function(req, res) {
+
+	});
 };
 
 // route middleware to make sure
