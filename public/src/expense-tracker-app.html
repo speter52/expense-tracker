@@ -107,6 +107,16 @@
 
         <iron-ajax
                 auto
+                id="getUserAjax"
+                url="/api/user"
+                method="GET"
+                handle-as="json"
+                on-response="_onGetUserSuccess"
+                on-error="_onGetUserError">
+        </iron-ajax>
+
+        <iron-ajax
+                auto
                 id="readExpenseAjax"
                 url="/api/expenses"
                 method="GET"
@@ -166,21 +176,31 @@
                 <div class="row">
                     <div class="col s6">
                         <vaadin-grid id="material" aria-label="Expenses" items='{{expenses}}'>
-                            <vaadin-grid-column resizable>
+                            <template is="dom-if" if="{{_showUsernames}}">
+                                <vaadin-grid-column>
+                                    <template class="header">User</template>
+                                    <template>[[item.username]]</template>
+                                </vaadin-grid-column>
+                            </template>
+                            <vaadin-grid-column>
                                 <template class="header">Date</template>
                                 <template>[[_parseEpochTimeToString(item.date)]]</template>
                             </vaadin-grid-column>
-                            <vaadin-grid-column resizable>
+                            <vaadin-grid-column>
                                 <template class="header">Description</template>
                                 <template>[[item.description]]</template>
                             </vaadin-grid-column>
-                            <vaadin-grid-column resizable>
+                            <vaadin-grid-column>
                                 <template class="header">Amount</template>
                                 <template>$[[item.amount]]</template>
                             </vaadin-grid-column>
-                            <vaadin-grid-column resizable>
+                            <vaadin-grid-column>
                                 <!-- TODO: Icon needs to show as clickable on hover -->
-                                <template><i class="material-icons" on-tap="_removeExpense">delete</i></template>
+                                <template>
+                                    <template is="dom-if" if="{{_isAllowedToRemove(item.username)}}">
+                                        <i class="material-icons" on-tap="_removeExpense" data-args="{{item.id}}">delete</i>
+                                    </template>
+                                </template>
                             </vaadin-grid-column>
                         </vaadin-grid>
                     </div>
@@ -216,6 +236,22 @@
             this.expenses = [];
         },
 
+        _onGetUserSuccess: function(e) {
+            this._loggedInUser = e.detail.response;
+            this._showUsernames = this._loggedInUser.role === 'admin';
+        },
+
+        _onGetUserError: function(e) {
+            console.error("Couldn't get user info!");
+            console.error(e);
+        },
+
+        _isAllowedToRemove: function(ownerOfExpense) {
+            if (ownerOfExpense != null && this._loggedInUser != null) {
+                return ownerOfExpense === this._loggedInUser.username;
+            }
+        },
+
         _onReadExpenseSuccess: function(e) {
             this.expenses = e.detail.response;
         },
@@ -237,7 +273,6 @@
 
         _onCreateExpenseSuccess: function(e) {
             let newExpense = e.detail.response;
-            newExpense.date = this._parseEpochTimeToString(newExpense.date * 1000);
 
             this.push('expenses', newExpense);
 
@@ -252,8 +287,7 @@
         },
 
         _removeExpense: function(e) {
-            let expenseToRemove = e.model.item;
-            this._expenseIdToDelete = expenseToRemove.id;
+            this._expenseIdToDelete = e.target.dataArgs;
 
             this.$.deleteExpenseAjax.generateRequest();
 
@@ -287,7 +321,7 @@
 
         _parseEpochTimeToString: function(epochTime) {
             if (epochTime != null) { // TODO: Fix comparison warnings
-                return this._parseDateObjectToString(new Date(epochTime/1000)); // TODO: Bug - all the dates are set to Jan 18, 1970
+                return this._parseDateObjectToString(new Date(parseInt(epochTime))); // TODO: Bug - all the dates are set to Jan 18, 1970
             }
         },
 

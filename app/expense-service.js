@@ -7,9 +7,11 @@ connection.query('USE ' + dbconfig.database);
 
 module.exports = {
     getExpenses: function(user, res) {
-        let getQuery = "SELECT * FROM expenses";
-        if (user.role != "admin") { // TODO: Refactor comparison warning
-            getQuery += ` WHERE username = "${user.username}"`;
+        if (user.role === "admin") {
+            getQuery = "SELECT id, date, username, amount, description FROM expenses";
+        }
+        else {
+            getQuery = `SELECT id, date, username, amount, description FROM expenses WHERE username = "${user.username}"`;
         }
 
         console.debug(`Retrieving all expenses for user ${user.username}...`);
@@ -28,7 +30,7 @@ module.exports = {
 
     createExpense: function(expense, user, res) {
         let expenseUuid = uuid();
-        let insertQuery = "INSERT INTO expenses (uuid, date, username, role, amount, description) values (?, ?, ?, ?, ?, ?)";
+        let insertQuery = "INSERT INTO expenses (id, date, username, role, amount, description) values (?, ?, ?, ?, ?, ?)";
 
         console.debug(`Inserting expense ${expenseUuid} - ${expense.description} into table...`);
         connection.query(insertQuery, [expenseUuid, expense.date, user.username, user.role, expense.amount, expense.description], function(err, rows) {
@@ -39,13 +41,15 @@ module.exports = {
             }
 
             console.log(`Successfully added new expense ${expenseUuid} - ${expense.description}`);
+
             expense.id = expenseUuid;
+            expense.username = user.username;
             res.status(201).send(expense);
         })
     },
 
     deleteExpense: function(expenseId, user, res) {
-        let deleteQuery = "DELETE FROM expenses WHERE uuid = ? AND username = ?";
+        let deleteQuery = "DELETE FROM expenses WHERE id = ? AND username = ?";
 
         console.debug(`Deleting expense ${expenseId} from table...`);
         connection.query(deleteQuery, [expenseId, user.username], function(err, rows) {
