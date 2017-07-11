@@ -230,10 +230,65 @@
 
         observers: [
             '_truncateNewExpenseAmount(_newExpenseAmount)',
+            '_calculateWeeklySpends(expenses)'
         ],
 
         ready: function(e){
             this.expenses = [];
+        },
+
+        _calculateWeeklySpends: function(expenses) {
+            if (expenses) {
+                let weeklySpends = [];
+
+                let previousWeekStart = null;
+                let nextWeekStart = null;
+                let numberOfTransactionsForCurrentWeek = 0;
+
+                for (let i=0; i<expenses.length; i++) {
+                    let expense = expenses[i];
+                    let expenseDate = new Date(expense.date);
+
+                    if (!previousWeekStart) {
+                        previousWeekStart = this._getPreviousSunday(expenseDate);
+                        nextWeekStart = this._getNextWeek(previousWeekStart);
+                        weeklySpends.add({
+                            week: nextWeekStart,
+                            spent: expense.amount
+                        });
+
+                        numberOfTransactionsForCurrentWeek++;
+                    }
+                    else {
+                        if (expenseDate < nextWeekStart) {
+                            let newAverageWeeklySpend = weeklySpends[-1];
+                            numberOfTransactionsForCurrentWeek++;
+                            newAverageWeeklySpend.spent = (newAverageWeeklySpend.spent + expense.amount)/numberOfTransactionsForCurrentWeek;
+                            weeklySpends[-1] = newAverageWeeklySpend;
+                        }
+                        else {
+                            numberOfTransactionsForCurrentWeek = 1;
+                            previousWeekStart = nextWeekStart;
+                            nextWeekStart = this._getNextWeek(previousWeekStart);
+
+                            weeklySpends.add({
+                                week: nextWeekStart,
+                                spent: expense.amount
+                            });
+                        }
+                    }
+                }
+            }
+        },
+
+        _getPreviousSunday: function(date) {
+            let dt = new Date(date);
+            dt.setDate(dt.getDate() - dt.getDay());
+            return dt;
+        },
+
+        _getNextWeek: function(date) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7);
         },
 
         _onGetUserSuccess: function(e) {
