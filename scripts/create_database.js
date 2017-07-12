@@ -24,6 +24,8 @@ console.log(createString);
 
 connection.query(createString);
 
+//create table expenses (id varchar(50), date bigint, username varchar(20), role varchar(20), amount double, description text);
+
 console.log('Success: Database Created!')
 
 connection.end();

@@ -12,7 +12,7 @@
             vaadin-grid {
                 padding: 2vw;
             }
-            vaadin-grid#material {
+            vaadin-grid.materialgrid {
 
                 font-family: Roboto, sans-serif;
                 --divider-color: rgba(0, 0, 0, var(--dark-divider-opacity));
@@ -47,51 +47,51 @@
                 };
             }
 
-            vaadin-grid#material .cell {
+            vaadin-grid.materialgrid .cell {
                 overflow: hidden;
                 text-overflow: ellipsis;
                 padding-right: 56px;
             }
 
-            vaadin-grid#material .cell.last {
+            vaadin-grid.materialgrid .cell.last {
                 padding-right: 24px;
             }
 
-            vaadin-grid#material .cell.numeric {
+            vaadin-grid.materialgrid .cell.numeric {
                 text-align: right;
             }
 
-            vaadin-grid#material paper-checkbox {
+            vaadin-grid.materialgrid paper-checkbox {
                 --primary-color: var(--paper-indigo-500);
                 margin: 0 24px;
             }
 
-            vaadin-grid#material vaadin-grid-sorter {
+            vaadin-grid.materialgrid vaadin-grid-sorter {
                 --vaadin-grid-sorter-arrow: {
                     display: none !important;
                 };
             }
 
-            vaadin-grid#material vaadin-grid-sorter .cell {
+            vaadin-grid.materialgrid vaadin-grid-sorter .cell {
                 flex: 1;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
 
-            vaadin-grid#material vaadin-grid-sorter iron-icon {
+            vaadin-grid.materialgrid vaadin-grid-sorter iron-icon {
                 transform: scale(0.8);
             }
 
-            vaadin-grid#material vaadin-grid-sorter:not([direction]) iron-icon {
+            vaadin-grid.materialgrid vaadin-grid-sorter:not([direction]) iron-icon {
                 color: rgba(0, 0, 0, var(--dark-disabled-opacity));
             }
 
-            vaadin-grid#material vaadin-grid-sorter[direction] {
+            vaadin-grid.materialgrid vaadin-grid-sorter[direction] {
                 color: rgba(0, 0, 0, var(--dark-primary-opacity));
             }
 
-            vaadin-grid#material vaadin-grid-sorter[direction=desc] iron-icon {
+            vaadin-grid.materialgrid vaadin-grid-sorter[direction=desc] iron-icon {
                 transform: scale(0.8) rotate(180deg);
             }
         </style>
@@ -175,7 +175,8 @@
             <div class="section">
                 <div class="row">
                     <div class="col s6">
-                        <vaadin-grid id="material" aria-label="Expenses" items='{{expenses}}'>
+                        <h5>History</h5>
+                        <vaadin-grid class="materialgrid" aria-label="Expenses" items='{{expenses}}'>
                             <template is="dom-if" if="{{_showUsernames}}">
                                 <vaadin-grid-column>
                                     <template class="header">User</template>
@@ -204,6 +205,30 @@
                             </vaadin-grid-column>
                         </vaadin-grid>
                     </div>
+
+                    <div class="col s6">
+                        <h5>Trends</h5>
+                        <div class="row">
+                            <div class="col s6">
+                                <label for="start">Start Date</label>
+                                <input id="start" type="date" class="datepicker" value="{{_reportStartDate::change}}">
+                            </div>
+                            <div class="col s6">
+                                <label for="end">End Date</label>
+                                <input id="end" type="date" class="datepicker" value="{{_reportEndDate::change}}">
+                            </div>
+                        </div>
+                        <vaadin-grid class="materialgrid" aria-label="Report" items='{{weeklySpends}}'>
+                            <vaadin-grid-column>
+                                <template class="header">Week</template>
+                                <template>Week ending [[_parseDateObjectToString(item.week)]]</template>
+                            </vaadin-grid-column>
+                            <vaadin-grid-column>
+                                <template class="header">Total Spent</template>
+                                <template>$[[item.spent]]</template>
+                            </vaadin-grid-column>
+                        </vaadin-grid>
+                    </div>
                 </div>
 
             </div>
@@ -222,6 +247,16 @@
                 computed: '_parseDateStringToObject(_newExpenseDate)'
             },
 
+            _reportStartDateParsed: {
+                type: Date,
+                computed: '_parseDateStringToObject(_reportStartDate)'
+            },
+
+            _reportEndDateParsed: {
+                type: Date,
+                computed: '_parseDateStringToObject(_reportEndDate)'
+            },
+
             _deleteExpenseUrl: {
                 type: String,
                 computed: '_getDeleteExpenseUrl(_expenseIdToDelete)'
@@ -230,54 +265,82 @@
 
         observers: [
             '_truncateNewExpenseAmount(_newExpenseAmount)',
-            '_calculateWeeklySpends(expenses)'
+            '_calculateWeeklySpends(_reportStartDateParsed, _reportEndDateParsed)',
+            '_sortExpenses(expenses.*)'
         ],
 
         ready: function(e){
             this.expenses = [];
+            this.weeklySpends = [];
         },
 
-        _calculateWeeklySpends: function(expenses) {
-            if (expenses) {
+        _sortExpenses: function(expenseObject) {
+            if (this.expenses && this.expenses.length > 0) {
+                // TODO: Use underscore to filter for admin users
+                this.expenses.sort(function (expenseA, expenseB) {
+                    if (expenseA.date < expenseB.date) {
+                        return -1;
+                    }
+                    else if (expenseA.date > expenseB.date) {
+                        return 1;
+                    }
+                    else {
+                        return 0;
+                    }
+                });
+                // Set report date range filters
+                let startDate = new Date(this.expenses[0].date);
+                let endDate = new Date(this.expenses[this.expenses.length - 1].date);
+                this._reportStartDate = startDate.toISOString().split('T')[0];
+                this._reportEndDate = endDate.toISOString().split('T')[0];
+
+                this._calculateWeeklySpends(startDate, endDate);
+            }
+        },
+
+        _calculateWeeklySpends: function(startDate, endDate) {
+            // TODO: Add a check/validator for if startDate is before endDate
+            if (this.expenses && this.expenses.length > 0) {
                 let weeklySpends = [];
 
                 let previousWeekStart = null;
                 let nextWeekStart = null;
-                let numberOfTransactionsForCurrentWeek = 0;
 
-                for (let i=0; i<expenses.length; i++) {
-                    let expense = expenses[i];
+                for (let i=0; i<this.expenses.length; i++) {
+                    let expense = this.expenses[i];
                     let expenseDate = new Date(expense.date);
+
+                    // Only calculate weekly spending for given range
+                    if (expenseDate < startDate) continue;
+                    if (expenseDate > endDate) break;
 
                     if (!previousWeekStart) {
                         previousWeekStart = this._getPreviousSunday(expenseDate);
                         nextWeekStart = this._getNextWeek(previousWeekStart);
-                        weeklySpends.add({
+                        weeklySpends.push({
                             week: nextWeekStart,
                             spent: expense.amount
                         });
-
-                        numberOfTransactionsForCurrentWeek++;
                     }
                     else {
                         if (expenseDate < nextWeekStart) {
-                            let newAverageWeeklySpend = weeklySpends[-1];
-                            numberOfTransactionsForCurrentWeek++;
-                            newAverageWeeklySpend.spent = (newAverageWeeklySpend.spent + expense.amount)/numberOfTransactionsForCurrentWeek;
-                            weeklySpends[-1] = newAverageWeeklySpend;
+                            let newAverageWeeklySpend = weeklySpends[weeklySpends.length - 1];
+                            newAverageWeeklySpend.spent += expense.amount;
+                            weeklySpends[weeklySpends.length - 1] = newAverageWeeklySpend;
                         }
                         else {
-                            numberOfTransactionsForCurrentWeek = 1;
-                            previousWeekStart = nextWeekStart;
+                            previousWeekStart = this._getPreviousSunday(expenseDate);
                             nextWeekStart = this._getNextWeek(previousWeekStart);
 
-                            weeklySpends.add({
+                            weeklySpends.push({
                                 week: nextWeekStart,
                                 spent: expense.amount
                             });
                         }
                     }
                 }
+
+                this.weeklySpends = weeklySpends;
             }
         },
 
@@ -302,13 +365,15 @@
         },
 
         _isAllowedToRemove: function(ownerOfExpense) {
-            if (ownerOfExpense != null && this._loggedInUser != null) {
+            if (ownerOfExpense && this._loggedInUser) {
                 return ownerOfExpense === this._loggedInUser.username;
             }
         },
 
         _onReadExpenseSuccess: function(e) {
-            this.expenses = e.detail.response;
+            let expenses = e.detail.response;
+
+            this.expenses = expenses;
         },
 
         _onReadExpenseError: function(e) {
@@ -320,7 +385,7 @@
             this._newExpense = {
                 date: this._newExpenseDateParsed.getTime(),
                 description: this._newExpenseDescription,
-                amount: this._newExpenseAmount
+                amount: parseFloat(this._newExpenseAmount)
             };
 
             this.$.createExpenseAjax.generateRequest();
@@ -363,25 +428,27 @@
         },
 
         _parseDateStringToObject: function(date) {
-            if (date != null) {
+            if (date) {
                 let dateParts = date.split('-');
                 return new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1 , parseInt(dateParts[2]));
             }
         },
 
         _parseDateObjectToString: function(date) {
-            let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+            if (date) {
+                let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+            }
         },
 
         _parseEpochTimeToString: function(epochTime) {
-            if (epochTime != null) { // TODO: Fix comparison warnings
+            if (epochTime) { // TODO: Fix comparison warnings
                 return this._parseDateObjectToString(new Date(parseInt(epochTime))); // TODO: Bug - all the dates are set to Jan 18, 1970
             }
         },
 
         _truncateNewExpenseAmount: function(amount) {
-            if (amount != null) {
+            if (amount) {
                 this._newExpenseAmount = parseInt(this._newExpenseAmount).toFixed(2);
             }
         },
