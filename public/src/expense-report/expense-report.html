@@ -1,0 +1,142 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/vaadin-date-picker/vaadin-date-picker.html">
+<link rel="import" href="../../bower_components/vaadin-grid/vaadin-grid.html">
+
+<link rel="import" href="expense-report-styles.html">
+
+<dom-module id="expense-report">
+
+    <template>
+        <style include="expense-report-styles"></style>
+
+        <div class="row">
+            <div class="col s6">
+                <label for="start">Start Date</label>
+                <input id="start" type="date" class="datepicker" value="{{_reportStartDate::change}}">
+            </div>
+            <div class="col s6">
+                <label for="end">End Date</label>
+                <input id="end" type="date" class="datepicker" value="{{_reportEndDate::change}}">
+            </div>
+        </div>
+
+        <vaadin-grid class="materialgrid" aria-label="Report" items='{{weeklySpends}}'>
+            <vaadin-grid-column>
+                <template class="header">Week</template>
+                <template>Week ending [[_parseDateObjectToString(item.week)]]</template>
+            </vaadin-grid-column>
+            <vaadin-grid-column>
+                <template class="header">Total Spent</template>
+                <template>$[[item.spent]]</template>
+            </vaadin-grid-column>
+        </vaadin-grid>
+    </template>
+
+</dom-module>
+
+<script>
+    Polymer({
+        is: "expense-report",
+        properties: {
+            expenses: {
+                type: Array,
+                notify: true
+            },
+
+            _reportStartDateParsed: {
+                type: Date,
+                computed: '_parseDateStringToObject(_reportStartDate)'
+            },
+
+            _reportEndDateParsed: {
+                type: Date,
+                computed: '_parseDateStringToObject(_reportEndDate)'
+            },
+        },
+
+        observers: [
+            'calculateWeeklySpends(_reportStartDateParsed, _reportEndDateParsed)',
+        ],
+
+        ready: function(e){
+            //this.expenses = [];
+            this.weeklySpends = [];
+        },
+
+        setReportRange: function(startDate, endDate) {
+            this._reportStartDate = startDate.toISOString().split('T')[0];
+            this._reportEndDate = endDate.toISOString().split('T')[0];
+        },
+
+        calculateWeeklySpends: function(startDate, endDate) {
+            // TODO: Add a check/validator for if startDate is before endDate
+            if (this.expenses && this.expenses.length > 0) {
+                let weeklySpends = [];
+
+                let previousWeekStart = null;
+                let nextWeekStart = null;
+
+                for (let i=0; i<this.expenses.length; i++) {
+                    let expense = this.expenses[i];
+                    let expenseDate = new Date(expense.date);
+
+                    // Only calculate weekly spending for given range
+                    if (expenseDate < startDate) continue;
+                    if (expenseDate > endDate) break;
+
+                    if (!previousWeekStart) {
+                        previousWeekStart = this._getPreviousSunday(expenseDate);
+                        nextWeekStart = this._getNextWeek(previousWeekStart);
+                        weeklySpends.push({
+                            week: nextWeekStart,
+                            spent: expense.amount
+                        });
+                    }
+                    else {
+                        if (expenseDate < nextWeekStart) {
+                            let newAverageWeeklySpend = weeklySpends[weeklySpends.length - 1];
+                            newAverageWeeklySpend.spent += expense.amount;
+                            weeklySpends[weeklySpends.length - 1] = newAverageWeeklySpend;
+                        }
+                        else {
+                            previousWeekStart = this._getPreviousSunday(expenseDate);
+                            nextWeekStart = this._getNextWeek(previousWeekStart);
+
+                            weeklySpends.push({
+                                week: nextWeekStart,
+                                spent: expense.amount
+                            });
+                        }
+                    }
+                }
+
+                this.weeklySpends = weeklySpends;
+            }
+        },
+
+        _getPreviousSunday: function(date) {
+            let dt = new Date(date);
+            dt.setDate(dt.getDate() - dt.getDay());
+            return dt;
+        },
+
+        _getNextWeek: function(date) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7);
+        },
+
+        _parseDateStringToObject: function(date) {
+            if (date) {
+                let dateParts = date.split('-');
+                return new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1 , parseInt(dateParts[2]));
+            }
+        },
+
+        _parseDateObjectToString: function(date) {
+            if (date) {
+                let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+            }
+        }
+    });
+</script>

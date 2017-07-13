@@ -2,105 +2,21 @@
 <link rel="import" href="../bower_components/paper-styles/paper-styles.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 
-<link rel="import" href="../bower_components/vaadin-grid/vaadin-grid.html">
 <link rel="import" href="../bower_components/vaadin-date-picker/vaadin-date-picker.html">
+<link rel="import" href="../bower_components/vaadin-grid/vaadin-grid.html">
+
+<link rel="import" href="./new-expense-form/new-expense-form.html">
+<link rel="import" href="./expense-table/expense-table.html">
+<link rel="import" href="./expense-report/expense-report.html">
 
 <dom-module id="expense-tracker-app">
-    <!-- TODO: Break up into separate components -->
+
     <template>
-        <style>
-            vaadin-grid {
-                padding: 2vw;
-            }
-            vaadin-grid.materialgrid {
-
-                font-family: Roboto, sans-serif;
-                --divider-color: rgba(0, 0, 0, var(--dark-divider-opacity));
-
-                --vaadin-grid-cell: {
-                    padding: 0;
-                };
-
-                --vaadin-grid-header-cell: {
-                    height: 64px;
-                    color: rgba(0, 0, 0, var(--dark-secondary-opacity));
-                    font-size: 12px;
-                };
-
-                --vaadin-grid-body-cell: {
-                    height: 48px;
-                    color: rgba(0, 0, 0, var(--dark-primary-opacity));
-                    font-size: 13px;
-                };
-
-                --vaadin-grid-body-row-hover-cell: {
-                    background-color: var(--paper-grey-200);
-                };
-
-                --vaadin-grid-body-row-selected-cell: {
-                    background-color: var(--paper-grey-100);
-                };
-
-                --vaadin-grid-focused-cell: {
-                    box-shadow: none;
-                    font-weight: bold;
-                };
-            }
-
-            vaadin-grid.materialgrid .cell {
-                overflow: hidden;
-                text-overflow: ellipsis;
-                padding-right: 56px;
-            }
-
-            vaadin-grid.materialgrid .cell.last {
-                padding-right: 24px;
-            }
-
-            vaadin-grid.materialgrid .cell.numeric {
-                text-align: right;
-            }
-
-            vaadin-grid.materialgrid paper-checkbox {
-                --primary-color: var(--paper-indigo-500);
-                margin: 0 24px;
-            }
-
-            vaadin-grid.materialgrid vaadin-grid-sorter {
-                --vaadin-grid-sorter-arrow: {
-                    display: none !important;
-                };
-            }
-
-            vaadin-grid.materialgrid vaadin-grid-sorter .cell {
-                flex: 1;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            vaadin-grid.materialgrid vaadin-grid-sorter iron-icon {
-                transform: scale(0.8);
-            }
-
-            vaadin-grid.materialgrid vaadin-grid-sorter:not([direction]) iron-icon {
-                color: rgba(0, 0, 0, var(--dark-disabled-opacity));
-            }
-
-            vaadin-grid.materialgrid vaadin-grid-sorter[direction] {
-                color: rgba(0, 0, 0, var(--dark-primary-opacity));
-            }
-
-            vaadin-grid.materialgrid vaadin-grid-sorter[direction=desc] iron-icon {
-                transform: scale(0.8) rotate(180deg);
-            }
-        </style>
-
         <nav style="overflow-y: hidden;">
             <div class="nav-wrapper blue">
                 <a href="#" class="brand-logo" style="padding-left: 1vw;">Expense Tracker</a>
                 <ul id="nav-mobile" class="right hide-on-med-and-down">
-                    <li><a href="/logout">Logout</a></li>
+                    <li><a href="/logout">{{_loggedInUser.username}} - Logout</a></li>
                 </ul>
             </div>
         </nav>
@@ -148,26 +64,7 @@
 
         <div class="container">
             <div class="section">
-                    <h5>New Expense</h5>
-                    <form class="col s12">
-                        <div class="row">
-                            <div class="col s2">
-                                <label for="date">Date</label>
-                                <input id="date" type="date" class="datepicker" value="{{_newExpenseDate::change}}">
-                            </div>
-                            <div class="col s8">
-                                <label for="description">Description</label>
-                                <input id="description" type="text" value="{{_newExpenseDescription::change}}">
-                            </div>
-                            <div class="col s2">
-                                <label for="amount">Amount (USD)</label>
-                                <input id="amount" type="text" value="{{_newExpenseAmount::change}}">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <a class="waves-effect waves-light btn col s1 offset-s11 blue" on-tap="_addExpense"><i class="material-icons left">note_add</i>Add</a>
-                        </div>
-                    </form>
+                <new-expense-form on-create-expense="_addExpense"></new-expense-form>
             </div>
 
             <div class="divider"></div>
@@ -176,58 +73,12 @@
                 <div class="row">
                     <div class="col s6">
                         <h5>History</h5>
-                        <vaadin-grid class="materialgrid" aria-label="Expenses" items='{{expenses}}'>
-                            <template is="dom-if" if="{{_showUsernames}}">
-                                <vaadin-grid-column>
-                                    <template class="header">User</template>
-                                    <template>[[item.username]]</template>
-                                </vaadin-grid-column>
-                            </template>
-                            <vaadin-grid-column>
-                                <template class="header">Date</template>
-                                <template>[[_parseEpochTimeToString(item.date)]]</template>
-                            </vaadin-grid-column>
-                            <vaadin-grid-column>
-                                <template class="header">Description</template>
-                                <template>[[item.description]]</template>
-                            </vaadin-grid-column>
-                            <vaadin-grid-column>
-                                <template class="header">Amount</template>
-                                <template>$[[item.amount]]</template>
-                            </vaadin-grid-column>
-                            <vaadin-grid-column>
-                                <!-- TODO: Icon needs to show as clickable on hover -->
-                                <template>
-                                    <template is="dom-if" if="{{_isAllowedToRemove(item.username)}}">
-                                        <i class="material-icons" on-tap="_removeExpense" data-args="{{item.id}}">delete</i>
-                                    </template>
-                                </template>
-                            </vaadin-grid-column>
-                        </vaadin-grid>
+                        <expense-table expenses="{{expenses}}" logged-in-user="{{_loggedInUser}}" on-remove-expense="_removeExpense"></expense-table>
                     </div>
 
                     <div class="col s6">
                         <h5>Trends</h5>
-                        <div class="row">
-                            <div class="col s6">
-                                <label for="start">Start Date</label>
-                                <input id="start" type="date" class="datepicker" value="{{_reportStartDate::change}}">
-                            </div>
-                            <div class="col s6">
-                                <label for="end">End Date</label>
-                                <input id="end" type="date" class="datepicker" value="{{_reportEndDate::change}}">
-                            </div>
-                        </div>
-                        <vaadin-grid class="materialgrid" aria-label="Report" items='{{weeklySpends}}'>
-                            <vaadin-grid-column>
-                                <template class="header">Week</template>
-                                <template>Week ending [[_parseDateObjectToString(item.week)]]</template>
-                            </vaadin-grid-column>
-                            <vaadin-grid-column>
-                                <template class="header">Total Spent</template>
-                                <template>$[[item.spent]]</template>
-                            </vaadin-grid-column>
-                        </vaadin-grid>
+                        <expense-report id="expensereport" expenses="{{expenses}}"></expense-report>
                     </div>
                 </div>
 
@@ -241,11 +92,6 @@
         is: "expense-tracker-app",
         properties: {
             expenses: Array,
-
-            _newExpenseDateParsed: {
-                type: Date,
-                computed: '_parseDateStringToObject(_newExpenseDate)'
-            },
 
             _reportStartDateParsed: {
                 type: Date,
@@ -264,14 +110,11 @@
         },
 
         observers: [
-            '_truncateNewExpenseAmount(_newExpenseAmount)',
-            '_calculateWeeklySpends(_reportStartDateParsed, _reportEndDateParsed)',
             '_sortExpenses(expenses.*)'
         ],
 
         ready: function(e){
             this.expenses = [];
-            this.weeklySpends = [];
         },
 
         _sortExpenses: function(expenseObject) {
@@ -288,70 +131,14 @@
                         return 0;
                     }
                 });
+
                 // Set report date range filters
                 let startDate = new Date(this.expenses[0].date);
                 let endDate = new Date(this.expenses[this.expenses.length - 1].date);
-                this._reportStartDate = startDate.toISOString().split('T')[0];
-                this._reportEndDate = endDate.toISOString().split('T')[0];
 
-                this._calculateWeeklySpends(startDate, endDate);
+                this.$.expensereport.setReportRange(startDate, endDate);
+                this.$.expensereport.calculateWeeklySpends(startDate, endDate);
             }
-        },
-
-        _calculateWeeklySpends: function(startDate, endDate) {
-            // TODO: Add a check/validator for if startDate is before endDate
-            if (this.expenses && this.expenses.length > 0) {
-                let weeklySpends = [];
-
-                let previousWeekStart = null;
-                let nextWeekStart = null;
-
-                for (let i=0; i<this.expenses.length; i++) {
-                    let expense = this.expenses[i];
-                    let expenseDate = new Date(expense.date);
-
-                    // Only calculate weekly spending for given range
-                    if (expenseDate < startDate) continue;
-                    if (expenseDate > endDate) break;
-
-                    if (!previousWeekStart) {
-                        previousWeekStart = this._getPreviousSunday(expenseDate);
-                        nextWeekStart = this._getNextWeek(previousWeekStart);
-                        weeklySpends.push({
-                            week: nextWeekStart,
-                            spent: expense.amount
-                        });
-                    }
-                    else {
-                        if (expenseDate < nextWeekStart) {
-                            let newAverageWeeklySpend = weeklySpends[weeklySpends.length - 1];
-                            newAverageWeeklySpend.spent += expense.amount;
-                            weeklySpends[weeklySpends.length - 1] = newAverageWeeklySpend;
-                        }
-                        else {
-                            previousWeekStart = this._getPreviousSunday(expenseDate);
-                            nextWeekStart = this._getNextWeek(previousWeekStart);
-
-                            weeklySpends.push({
-                                week: nextWeekStart,
-                                spent: expense.amount
-                            });
-                        }
-                    }
-                }
-
-                this.weeklySpends = weeklySpends;
-            }
-        },
-
-        _getPreviousSunday: function(date) {
-            let dt = new Date(date);
-            dt.setDate(dt.getDate() - dt.getDay());
-            return dt;
-        },
-
-        _getNextWeek: function(date) {
-            return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7);
         },
 
         _onGetUserSuccess: function(e) {
@@ -362,12 +149,6 @@
         _onGetUserError: function(e) {
             console.error("Couldn't get user info!");
             console.error(e);
-        },
-
-        _isAllowedToRemove: function(ownerOfExpense) {
-            if (ownerOfExpense && this._loggedInUser) {
-                return ownerOfExpense === this._loggedInUser.username;
-            }
         },
 
         _onReadExpenseSuccess: function(e) {
@@ -381,24 +162,14 @@
             console.error(e);
         },
 
-        _addExpense: function(e) {
-            this._newExpense = {
-                date: this._newExpenseDateParsed.getTime(),
-                description: this._newExpenseDescription,
-                amount: parseFloat(this._newExpenseAmount)
-            };
-
+        _addExpense: function(newExpenseEvent) {
+            this._newExpense = newExpenseEvent.detail.expense;
             this.$.createExpenseAjax.generateRequest();
         },
 
         _onCreateExpenseSuccess: function(e) {
             let newExpense = e.detail.response;
-
             this.push('expenses', newExpense);
-
-            this._newExpenseDate = null;
-            this._newExpenseDescription = null;
-            this._newExpenseAmount = null;
         },
 
         _onCreateExpenseError: function(e) {
@@ -406,12 +177,10 @@
             console.error(e);
         },
 
-        _removeExpense: function(e) {
-            this._expenseIdToDelete = e.target.dataArgs;
-
+        _removeExpense: function(removeExpenseEvent) {
+            this._expenseIdToDelete = removeExpenseEvent.detail.expenseId;//e.target.dataArgs;
             this.$.deleteExpenseAjax.generateRequest();
-
-            this._indexOfExpenseToRemove = this.expenses.indexOf(e.model.item);
+            this._indexOfExpenseToRemove = removeExpenseEvent.detail.indexOfExpense;
         },
 
         _onDeleteExpenseSuccess: function(e) {
@@ -439,18 +208,6 @@
                 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                 return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
             }
-        },
-
-        _parseEpochTimeToString: function(epochTime) {
-            if (epochTime) { // TODO: Fix comparison warnings
-                return this._parseDateObjectToString(new Date(parseInt(epochTime))); // TODO: Bug - all the dates are set to Jan 18, 1970
-            }
-        },
-
-        _truncateNewExpenseAmount: function(amount) {
-            if (amount) {
-                this._newExpenseAmount = parseInt(this._newExpenseAmount).toFixed(2);
-            }
-        },
+        }
     });
 </script>

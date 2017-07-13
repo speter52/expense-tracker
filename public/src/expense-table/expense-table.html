@@ -1,0 +1,84 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/vaadin-grid/vaadin-grid.html">
+
+<link rel="import" href="expense-table-styles.html">
+
+
+<dom-module id="expense-table">
+
+    <template>
+        <style include="expense-table-styles"></style>
+
+        <vaadin-grid class="materialgrid" aria-label="Expenses" items='{{expenses}}'>
+            <template is="dom-if" if="{{_showUsernames}}">
+                <vaadin-grid-column>
+                    <template class="header">User</template>
+                    <template>[[item.username]]</template>
+                </vaadin-grid-column>
+            </template>
+            <vaadin-grid-column>
+                <template class="header">Date</template>
+                <template>[[_parseEpochTimeToString(item.date)]]</template>
+            </vaadin-grid-column>
+            <vaadin-grid-column>
+                <template class="header">Description</template>
+                <template>[[item.description]]</template>
+            </vaadin-grid-column>
+            <vaadin-grid-column>
+                <template class="header">Amount</template>
+                <template>$[[item.amount]]</template>
+            </vaadin-grid-column>
+            <vaadin-grid-column>
+                <!-- TODO: Icon needs to show as clickable on hover -->
+                <template>
+                    <template is="dom-if" if="{{_isAllowedToRemove(item.username)}}">
+                        <i class="material-icons" on-tap="_removeExpense" data-args="{{item.id}}">delete</i>
+                    </template>
+                </template>
+            </vaadin-grid-column>
+        </vaadin-grid>
+    </template>
+
+</dom-module>
+
+<script>
+    Polymer({
+        is: "expense-table",
+        properties: {
+            expenses: {
+                type: Array,
+                notify: true
+            },
+            loggedInUser: String
+        },
+
+        ready: function(e){
+            this.expenses = [];
+        },
+
+        _isAllowedToRemove: function(ownerOfExpense) {
+            if (ownerOfExpense && this.loggedInUser) {
+                return ownerOfExpense === this.loggedInUser.username;
+            }
+        },
+
+        _removeExpense: function(e) {
+            this._expenseIdToDelete = e.target.dataArgs;
+            this.fire('remove-expense', {expenseId:  e.target.dataArgs, indexOfExpense: this.expenses.indexOf(e.model.item)});
+        },
+
+        _parseDateObjectToString: function(date) {
+            if (date) {
+                let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+            }
+        },
+
+        _parseEpochTimeToString: function(epochTime) {
+            if (epochTime) { // TODO: Fix comparison warnings
+                return this._parseDateObjectToString(new Date(parseInt(epochTime))); // TODO: Bug - all the dates are set to Jan 18, 1970
+            }
+        }
+    });
+</script>

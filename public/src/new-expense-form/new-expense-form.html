@@ -1,0 +1,72 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/vaadin-date-picker/vaadin-date-picker.html">
+
+<dom-module id="new-expense-form">
+
+    <template>
+        <h5>New Expense</h5>
+        <form class="col s12">
+            <div class="row">
+                <div class="col s2">
+                    <label for="date">Date</label>
+                    <input id="date" type="date" class="datepicker" value="{{_newExpenseDate::change}}">
+                </div>
+                <div class="col s8">
+                    <label for="description">Description</label>
+                    <input id="description" type="text" value="{{_newExpenseDescription::change}}">
+                </div>
+                <div class="col s2">
+                    <label for="amount">Amount (USD)</label>
+                    <input id="amount" type="text" value="{{_newExpenseAmount::change}}">
+                </div>
+            </div>
+            <div class="row">
+                <a class="waves-effect waves-light btn col s1 offset-s11 blue" on-tap="_addExpense"><i class="material-icons left">note_add</i>Add</a>
+            </div>
+        </form>
+    </template>
+
+</dom-module>
+
+<script>
+    Polymer({
+        is: "new-expense-form",
+        properties: {
+            _newExpenseDateParsed: {
+                type: Date,
+                computed: '_parseDateStringToObject(_newExpenseDate)'
+            }
+        },
+
+        observers: [
+            '_truncateNewExpenseAmount(_newExpenseAmount)',
+        ],
+
+        _addExpense: function(e) {
+            let expense = {
+                date: this._newExpenseDateParsed.getTime(),
+                description: this._newExpenseDescription,
+                amount: parseFloat(this._newExpenseAmount)
+            };
+
+            this.fire('create-expense', {expense: expense});
+
+            this._newExpenseDate = null;
+            this._newExpenseDescription = null;
+            this._newExpenseAmount = null;
+        },
+
+        _parseDateStringToObject: function(date) {
+            if (date) {
+                let dateParts = date.split('-');
+                return new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1 , parseInt(dateParts[2]));
+            }
+        },
+
+        _truncateNewExpenseAmount: function(amount) {
+            if (amount) {
+                this._newExpenseAmount = parseInt(this._newExpenseAmount).toFixed(2);
+            }
+        },
+    });
+</script>
