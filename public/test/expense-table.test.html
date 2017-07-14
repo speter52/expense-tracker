@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+    <script src="../bower_components/web-component-tester/browser.js"></script>
+    <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+
+    <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+    <link rel="import" href="../src/expense-table/expense-table.html">
+
+</head>
+<body>
+
+    <test-fixture id="expensetable">
+        <template>
+            <expense-table></expense-table>
+        </template>
+    </test-fixture>
+
+    <script>
+        describe('<expense-table>', function() {
+
+            let expenses;
+            let expenseTable;
+
+            beforeEach(function() {
+                expenses = [
+                    {
+                        "id": "beba5fba-173c-47c4-aa7a-c57379e5bed3",
+                        "date": 1500620400000,
+                        "username": "testuser3",
+                        "amount": 8,
+                        "description": "sdfdsfs"
+                    },
+                    {
+                        "id": "06f44f35-90c9-4552-8d65-bac20f8ea243",
+                        "date": 1500620400000,
+                        "username": "testuser3",
+                        "amount": 5,
+                        "description": "yolo"
+                    },
+                    {
+                        "id": "987c76e7-94cc-4e80-ae32-46d6c2477ec6",
+                        "date": 1499151600000,
+                        "username": "testuser3",
+                        "amount": 6,
+                        "description": "sdfdsfds"
+                    }
+                ];
+
+                expenseTable= fixture('expensetable')
+            });
+
+            it('should create a row for each expense', function() {
+                expenseTable.expenses = expenses;
+                expect(expenseTable.querySelector('#items').children.length).to.equal(expenses.length);
+            });
+
+            describe('when adding an expense', function() {
+                it('should add the row in the table', function() {
+                    expenseTable.loggedInUser = {username: "testuser3", role: "regular"};
+                    expenseTable.expenses = expenses;
+
+                    expect(expenseTable.querySelector('#items').children.length).to.equal(expenses.length);
+
+                    expenseTable.push('expenses', {
+                        "id": "987c76e7-94cc-4e80-ae32-46d6c2477ec6",
+                        "date": 1499151600000,
+                        "username": "testuser3",
+                        "amount": 6,
+                        "description": "sdfdsfds"
+                    });
+
+                    expect(expenseTable.querySelector('#items').children.length).to.equal(expenses.length);
+                })
+            });
+
+            describe('when clicking the remove icon on an expense', function() {
+                it('should remove the row from the table', function(done) {
+                    expenseTable.loggedInUser = {username: "testuser3", role: "regular"};
+                    expenseTable.expenses = expenses;
+                    debugger;
+
+                    expenseTable.addEventListener('remove-expense', function(event) {
+                        expect(event.detail.expenseId).to.equal(expenses[0].id);
+                        done();
+                    });
+
+                    expenseTable._removeExpense({
+                        model: {
+                            item: expenses[0]
+                        }
+                    })
+                });
+            });
+
+            describe('when a regular user is logged in', function() {
+                it('should allow every expense to be removable', function() {
+                    expenseTable.loggedInUser = {username: "testuser3", role: "regular"};
+                    expenseTable.expenses = expenses;
+
+                    expect(expenseTable.querySelectorAll('.delete-icon').length).to.equal(expenses.length);
+                })
+            });
+
+            describe('when an admin user is logged in', function() {
+                it("should allow only the admin's expenses to be removable", function() {
+                    expenseTable.loggedInUser = {username: "admin", role: "admin"};
+                    expenses.push({
+                        "id": "917c76e7-94cc-4e80-ae32-46d6c2477ec6",
+                        "date": 1499151600000,
+                        "username": "admin",
+                        "amount": 6,
+                        "description": "sdfdsfds"
+                    });
+
+                    expenseTable.expenses = expenses;
+
+                    expect(expenseTable.querySelectorAll('.delete-icon').length).to.equal(1);
+                });
+            });
+
+        });
+    </script>
+
+</body>
+</html>

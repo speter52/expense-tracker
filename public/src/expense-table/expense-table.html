@@ -1,5 +1,7 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
 <link rel="import" href="../../bower_components/vaadin-grid/vaadin-grid.html">
 
 <link rel="import" href="expense-table-styles.html">
@@ -32,8 +34,8 @@
             <vaadin-grid-column>
                 <!-- TODO: Icon needs to show as clickable on hover -->
                 <template>
-                    <template is="dom-if" if="{{_isAllowedToRemove(item.username)}}">
-                        <i class="material-icons" on-tap="_removeExpense" data-args="{{item.id}}">delete</i>
+                    <template is="dom-if" if="{{_isAllowedToRemove(item.username, loggedInUser.username)}}">
+                        <i class="material-icons delete-icon" on-tap="_removeExpense">delete</i>
                     </template>
                 </template>
             </vaadin-grid-column>
@@ -50,22 +52,24 @@
                 type: Array,
                 notify: true
             },
-            loggedInUser: String
+            loggedInUser: {
+                type: Object,
+                notify: true
+            }
         },
 
         ready: function(e){
             this.expenses = [];
         },
 
-        _isAllowedToRemove: function(ownerOfExpense) {
-            if (ownerOfExpense && this.loggedInUser) {
-                return ownerOfExpense === this.loggedInUser.username;
+        _isAllowedToRemove: function(ownerOfExpense, loggedInUser) {
+            if (ownerOfExpense && loggedInUser) {
+               return ownerOfExpense === loggedInUser;
             }
         },
 
         _removeExpense: function(e) {
-            this._expenseIdToDelete = e.target.dataArgs;
-            this.fire('remove-expense', {expenseId:  e.target.dataArgs, indexOfExpense: this.expenses.indexOf(e.model.item)});
+            this.fire('remove-expense', {expenseId:  e.model.item.id, indexOfExpense: this.expenses.indexOf(e.model.item)});
         },
 
         _parseDateObjectToString: function(date) {
