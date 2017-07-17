@@ -130,6 +130,7 @@
                     let expenseDate = new Date(expense.date);
 
                     // Only calculate weekly spending for expenses belonging to the current user and within the given range
+                    // TODO: Need to make sure the user info is received before the weekly report is calculated
                     if (expense.username !== this.loggedInUser.username) continue;
 
                     if (expenseDate < startDate) continue;

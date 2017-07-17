@@ -18,12 +18,13 @@ if (process.env.VCAP_SERVICES) {
 }
 // Connect to local DB
 else {
+    var localDbConfig = require('./localdb-connection');
     dbConnectionProperties = {
         connectionLimit: 10,
         host: 'localhost',
-        user: 'dbuser',
-        password: 'password',
-        'database': 'expensetracker2'
+        user: localDbConfig.connection.user,
+        password: localDbConfig.connection.password,
+        database: localDbConfig.database
     };
 }
 

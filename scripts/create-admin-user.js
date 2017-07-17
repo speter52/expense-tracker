@@ -1,5 +1,5 @@
 let mysql = require('mysql');
-let dbconfig = require('../config/database');
+let dbconfig = require('../config/localdb-config');
 let bcrypt = require('bcrypt-nodejs');
 
 let connection = mysql.createConnection(dbconfig.connection);
