@@ -64,8 +64,9 @@
         },
 
         _truncateNewExpenseAmount: function(amount) {
+            // TODO: Validate amount format
             if (amount) {
-                this._newExpenseAmount = parseInt(this._newExpenseAmount).toFixed(2);
+                this._newExpenseAmount = parseFloat(this._newExpenseAmount).toFixed(2);
             }
         },
     });
