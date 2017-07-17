@@ -15,7 +15,7 @@
         <!-- Navbar -->
         <nav style="overflow-y: hidden;">
             <div class="nav-wrapper blue">
-                <a href="#" class="brand-logo" style="padding-left: 1vw;">Expense Tracker</a>
+                <a class="brand-logo" style="padding-left: 1vw;">Expense Tracker</a>
                 <ul id="nav-mobile" class="right hide-on-med-and-down">
                     <li><a href="/logout">{{_loggedInUser.username}} - Logout</a></li>
                 </ul>
@@ -67,7 +67,7 @@
         </iron-ajax>
 
 
-        <div class="container">
+        <div class="container" style="width: 80%;">
             <!-- New expense info form -->
             <div class="section">
                 <new-expense-form on-create-expense="_addExpense"></new-expense-form>

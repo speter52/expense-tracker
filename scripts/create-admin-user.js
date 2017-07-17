@@ -5,7 +5,7 @@ let bcrypt = require('bcrypt-nodejs');
 let connection = mysql.createConnection(dbconfig.connection);
 
 let adminUsername = "admin";
-let adminPassword = "password";
+let adminPassword = "P@ssw0rd";
 
 let adminPasswordHash = bcrypt.hashSync(adminPassword, null, null);
 

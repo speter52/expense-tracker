@@ -1,13 +1,9 @@
-let LocalStrategy   = require('passport-local').Strategy;
+var LocalStrategy   = require('passport-local').Strategy;
 
-let mysql = require('mysql');
-let bcrypt = require('bcrypt-nodejs');
-let dbconfig = require('./database');
-let connection = mysql.createConnection(dbconfig.connection);
+var mysql = require('mysql');
+var bcrypt = require('bcrypt-nodejs');
 
-connection.query('USE ' + dbconfig.database);
-
-module.exports = function(passport) {
+module.exports = function(passport, dbPool) {
 
     /**
      * Store the ID of the user in the session.
@@ -20,7 +16,7 @@ module.exports = function(passport) {
      * Use the user ID from the session to retrieve the user's attributes from the database.
      */
     passport.deserializeUser(function(id, done) {
-        connection.query("SELECT * FROM users WHERE id = ? ",[id], function(err, rows){
+        dbPool.query("SELECT * FROM users WHERE id = ? ",[id], function(err, rows){
             done(err, rows[0]);
         });
     });
@@ -37,7 +33,7 @@ module.exports = function(passport) {
         },
         function(req, username, password, done) {
             // Check  if the user already exists
-            connection.query("SELECT * FROM users WHERE username = ?",[username], function(err, rows) {
+            dbPool.query("SELECT * FROM users WHERE username = ?",[username], function(err, rows) {
                 if (err)
                     return done(err);
                 if (rows.length) {
@@ -45,14 +41,14 @@ module.exports = function(passport) {
                 }
                 // Create new user
                 else {
-                    let newUserMysql = {
+                    var newUserMysql = {
                         username: username,
                         role: "regular",
                         password: bcrypt.hashSync(password, null, null)
                     };
 
-                    let insertQuery = "INSERT INTO users ( username, role, password ) values (?,?,?)";
-                    connection.query(insertQuery,[newUserMysql.username, newUserMysql.role, newUserMysql.password],function(err, rows) {
+                    var insertQuery = "INSERT INTO users ( username, role, password ) values (?,?,?)";
+                    dbPool.query(insertQuery,[newUserMysql.username, newUserMysql.role, newUserMysql.password],function(err, rows) {
                         newUserMysql.id = rows.insertId;
 
                         return done(null, newUserMysql);
@@ -74,7 +70,7 @@ module.exports = function(passport) {
             passReqToCallback : true // allows us to pass back the entire request to the callback
         },
         function(req, username, password, done) { // callback with email and password from our form
-            connection.query("SELECT * FROM users WHERE username = ?",[username], function(err, rows){
+            dbPool.query("SELECT * FROM users WHERE username = ?",[username], function(err, rows){
                 if (err)
                     return done(err);
                 if (!rows.length) {

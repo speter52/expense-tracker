@@ -1,11 +1,8 @@
-// app/routes.js
+var path = require('path');
+var express  = require('express');
 
-let path = require('path');
-let express  = require('express');
-
-let expenseService = require('./expense-service');
-
-module.exports = function(app, passport) {
+module.exports = function(app, passport, dbPool) {
+    var expenseService = require('./expense-service') (dbPool);
 
     /**
      * Login page

@@ -121,6 +121,7 @@
         calculateWeeklySpends: function(startDate, endDate) {
             this.weeklySpends = [];
             if (this.expenses && this.expenses.length > 0) {
+                let weeklySpends = [];
                 let previousWeekStart = null;
                 let nextWeekStart = null;
 

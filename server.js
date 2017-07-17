@@ -1,17 +1,19 @@
-let express  = require('express');
-let session  = require('express-session');
-let cookieParser = require('cookie-parser');
-let bodyParser = require('body-parser');
-let morgan = require('morgan');
-let path = require('path');
-let app      = express();
-let port     = process.env.PORT || 8080;
+var express  = require('express');
+var session  = require('express-session');
+var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser');
+var morgan = require('morgan');
+var path = require('path');
+var app = express();
+var port = process.env.PORT || 8080;
 
-let passport = require('passport');
-let flash    = require('connect-flash');
+var passport = require('passport');
+var flash = require('connect-flash');
+
+var dbPool = require('./config/database-pool');
 
 
-require('./config/passport')(passport); // pass passport for configuration
+require('./config/passport')(passport, dbPool); // pass passport for configuration
 
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for auth)
@@ -34,7 +36,7 @@ app.use(flash());
 
 
 // routes ======================================================================
-require('./app/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
+require('./app/routes.js')(app, passport, dbPool); // load our routes and pass in our app and fully configured passport
 
 // launch ======================================================================
 app.listen(port);
