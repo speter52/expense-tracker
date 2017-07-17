@@ -21,7 +21,6 @@
 
     <script>
         describe('<expense-table>', function() {
-
             let expenses;
             let expenseTable;
 
@@ -32,21 +31,21 @@
                         "date": 1500620400000,
                         "username": "testuser3",
                         "amount": 8,
-                        "description": "sdfdsfs"
+                        "description": "Table"
                     },
                     {
                         "id": "06f44f35-90c9-4552-8d65-bac20f8ea243",
                         "date": 1500620400000,
                         "username": "testuser3",
                         "amount": 5,
-                        "description": "yolo"
+                        "description": "Pepsi"
                     },
                     {
                         "id": "987c76e7-94cc-4e80-ae32-46d6c2477ec6",
                         "date": 1499151600000,
                         "username": "testuser3",
                         "amount": 6,
-                        "description": "sdfdsfds"
+                        "description": "Burger"
                     }
                 ];
 
@@ -81,7 +80,6 @@
                 it('should remove the row from the table', function(done) {
                     expenseTable.loggedInUser = {username: "testuser3", role: "regular"};
                     expenseTable.expenses = expenses;
-                    debugger;
 
                     expenseTable.addEventListener('remove-expense', function(event) {
                         expect(event.detail.expenseId).to.equal(expenses[0].id);

@@ -1,44 +1,36 @@
-// server.js
+let express  = require('express');
+let session  = require('express-session');
+let cookieParser = require('cookie-parser');
+let bodyParser = require('body-parser');
+let morgan = require('morgan');
+let path = require('path');
+let app      = express();
+let port     = process.env.PORT || 8080;
 
-// set up ======================================================================
-// get all the tools we need
-var express  = require('express');
-var session  = require('express-session');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var morgan = require('morgan');
-var path = require('path');
-var app      = express();
-var port     = process.env.PORT || 8080;
+let passport = require('passport');
+let flash    = require('connect-flash');
 
-var passport = require('passport');
-var flash    = require('connect-flash');
-
-// configuration ===============================================================
-// connect to our database
 
 require('./config/passport')(passport); // pass passport for configuration
 
-// set up our express application
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for auth)
 app.use(bodyParser.urlencoded({
 	extended: true
 }));
 app.use(bodyParser.json());
-//app.use(express.static(path.join(__dirname, 'public')));
 
-app.set('view engine', 'ejs'); // set up ejs for templating
+app.set('view engine', 'ejs');
 
 // required for passport
 app.use(session({
-	secret: 'vidyapathaisalwaysrunning',
+	secret: 'EXaWsipFDRCni49YlAz5',
 	resave: true,
 	saveUninitialized: true
  } )); // session secret
 app.use(passport.initialize());
-app.use(passport.session()); // persistent login sessions
-app.use(flash()); // use connect-flash for flash messages stored in session
+app.use(passport.session());
+app.use(flash());
 
 
 // routes ======================================================================

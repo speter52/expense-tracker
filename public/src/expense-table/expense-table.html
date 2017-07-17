@@ -13,29 +13,39 @@
         <style include="expense-table-styles"></style>
 
         <vaadin-grid class="materialgrid" aria-label="Expenses" items='{{expenses}}'>
+
+            <!-- If logged in as admin, show the owner of each expense -->
             <template is="dom-if" if="{{_showUsernames}}">
                 <vaadin-grid-column>
                     <template class="header">User</template>
                     <template>[[item.username]]</template>
                 </vaadin-grid-column>
             </template>
+
+            <!-- Expense Date -->
             <vaadin-grid-column>
                 <template class="header">Date</template>
                 <template>[[_parseEpochTimeToString(item.date)]]</template>
             </vaadin-grid-column>
+
+            <!-- Expense Description -->
             <vaadin-grid-column>
                 <template class="header">Description</template>
                 <template>[[item.description]]</template>
             </vaadin-grid-column>
+
+            <!-- Expense Amount -->
             <vaadin-grid-column>
                 <template class="header">Amount</template>
                 <template>$[[item.amount]]</template>
             </vaadin-grid-column>
+
+            <!-- If logged in user is expense owner, show expense edit options -->
             <vaadin-grid-column>
                 <!-- TODO: Icon needs to show as clickable on hover -->
                 <template>
                     <template is="dom-if" if="{{_isAllowedToRemove(item.username, loggedInUser.username)}}">
-                        <i class="material-icons delete-icon" on-tap="_removeExpense">delete</i>
+                        <i class="material-icons delete-icon" on-tap="_removeExpense" data-args="{{item}}">delete</i>
                     </template>
                 </template>
             </vaadin-grid-column>
@@ -55,6 +65,10 @@
             loggedInUser: {
                 type: Object,
                 notify: true
+            },
+            _showUsernames: {
+                type: Boolean,
+                computed: '_getShowUsernames(loggedInUser)'
             }
         },
 
@@ -62,16 +76,44 @@
             this.expenses = [];
         },
 
+        /**
+         * Fire an event to indicate the expense to be removed.
+         * @param e
+         * @private
+         */
+        _removeExpense: function(e) {
+            this.fire('remove-expense', {expenseId:  e.model.item.id, indexOfExpense: this.expenses.indexOf(e.model.item)});
+        },
+
+        /**
+         * Check if the given expense owner is the logged in user.
+         * @param ownerOfExpense
+         * @param loggedInUser
+         * @returns {boolean}
+         * @private
+         */
         _isAllowedToRemove: function(ownerOfExpense, loggedInUser) {
             if (ownerOfExpense && loggedInUser) {
                return ownerOfExpense === loggedInUser;
             }
         },
 
-        _removeExpense: function(e) {
-            this.fire('remove-expense', {expenseId:  e.model.item.id, indexOfExpense: this.expenses.indexOf(e.model.item)});
+        /**
+         * Check if the current user is an admin.
+         * @param loggedInUser
+         * @returns {boolean}
+         * @private
+         */
+        _getShowUsernames: function(loggedInUser) {
+            return loggedInUser.role === 'admin';
         },
 
+        /**
+         * Get a pretty date string from a Date object to display in the table.
+         * @param date
+         * @returns {string}
+         * @private
+         */
         _parseDateObjectToString: function(date) {
             if (date) {
                 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -79,9 +121,15 @@
             }
         },
 
+        /**
+         * Get a pretty date string from epoch time in seconds.
+         * @param epochTime
+         * @returns {*|string}
+         * @private
+         */
         _parseEpochTimeToString: function(epochTime) {
-            if (epochTime) { // TODO: Fix comparison warnings
-                return this._parseDateObjectToString(new Date(parseInt(epochTime))); // TODO: Bug - all the dates are set to Jan 18, 1970
+            if (epochTime) {
+                return this._parseDateObjectToString(new Date(parseInt(epochTime)));
             }
         }
     });

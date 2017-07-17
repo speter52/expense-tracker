@@ -12,6 +12,7 @@
 <dom-module id="expense-tracker-app">
 
     <template>
+        <!-- Navbar -->
         <nav style="overflow-y: hidden;">
             <div class="nav-wrapper blue">
                 <a href="#" class="brand-logo" style="padding-left: 1vw;">Expense Tracker</a>
@@ -21,6 +22,7 @@
             </div>
         </nav>
 
+        <!-- Get username and role information -->
         <iron-ajax
                 auto
                 id="getUserAjax"
@@ -31,6 +33,7 @@
                 on-error="_onGetUserError">
         </iron-ajax>
 
+        <!-- Get all expenses on page load -->
         <iron-ajax
                 auto
                 id="readExpenseAjax"
@@ -41,6 +44,7 @@
                 on-error="_onReadExpenseError">
         </iron-ajax>
 
+        <!-- Create a new expense -->
         <iron-ajax
             id="createExpenseAjax"
             url="/api/expenses"
@@ -52,6 +56,7 @@
             on-error="_onCreateExpenseError">
         </iron-ajax>
 
+        <!-- Delete an expense -->
         <iron-ajax
                 id="deleteExpenseAjax"
                 url='{{_deleteExpenseUrl}}'
@@ -63,6 +68,7 @@
 
 
         <div class="container">
+            <!-- New expense info form -->
             <div class="section">
                 <new-expense-form on-create-expense="_addExpense"></new-expense-form>
             </div>
@@ -71,14 +77,16 @@
 
             <div class="section">
                 <div class="row">
+                    <!-- List of all stored expenses -->
                     <div class="col s6">
                         <h5>History</h5>
                         <expense-table expenses="{{expenses}}" logged-in-user="{{_loggedInUser}}" on-remove-expense="_removeExpense"></expense-table>
                     </div>
 
+                    <!-- List of total spending by week -->
                     <div class="col s6">
                         <h5>Trends</h5>
-                        <expense-report id="expensereport" expenses="{{expenses}}"></expense-report>
+                        <expense-report id="expensereport" expenses="{{expenses}}" logged-in-user="{{_loggedInUser}}"></expense-report>
                     </div>
                 </div>
 
@@ -91,56 +99,32 @@
     Polymer({
         is: "expense-tracker-app",
         properties: {
-            expenses: Array,
-
-            _reportStartDateParsed: {
-                type: Date,
-                computed: '_parseDateStringToObject(_reportStartDate)'
+            /**
+             * List of all expenses for this user.
+             */
+            expenses: {
+                type: Array,
+                notify: true
             },
 
-            _reportEndDateParsed: {
-                type: Date,
-                computed: '_parseDateStringToObject(_reportEndDate)'
-            },
-
+            /**
+             * URL to delete a clicked on expense.
+             */
             _deleteExpenseUrl: {
                 type: String,
                 computed: '_getDeleteExpenseUrl(_expenseIdToDelete)'
             }
         },
 
-        observers: [
-            '_sortExpenses(expenses.*)'
-        ],
-
         ready: function(e){
             this.expenses = [];
         },
 
-        _sortExpenses: function(expenseObject) {
-            if (this.expenses && this.expenses.length > 0) {
-                // TODO: Use underscore to filter for admin users
-                this.expenses.sort(function (expenseA, expenseB) {
-                    if (expenseA.date < expenseB.date) {
-                        return -1;
-                    }
-                    else if (expenseA.date > expenseB.date) {
-                        return 1;
-                    }
-                    else {
-                        return 0;
-                    }
-                });
-
-                // Set report date range filters
-                let startDate = new Date(this.expenses[0].date);
-                let endDate = new Date(this.expenses[this.expenses.length - 1].date);
-
-                this.$.expensereport.setReportRange(startDate, endDate);
-                this.$.expensereport.calculateWeeklySpends(startDate, endDate);
-            }
-        },
-
+        /**
+         * On successful user info response, display the currently logged in username and show users column if admin.
+         * @param e
+         * @private
+         */
         _onGetUserSuccess: function(e) {
             this._loggedInUser = e.detail.response;
             this._showUsernames = this._loggedInUser.role === 'admin';
@@ -151,10 +135,13 @@
             console.error(e);
         },
 
+        /**
+         * On successful get expenses response, set the expense list to populate the tables.
+         * @param e
+         * @private
+         */
         _onReadExpenseSuccess: function(e) {
-            let expenses = e.detail.response;
-
-            this.expenses = expenses;
+            this.expenses = e.detail.response;
         },
 
         _onReadExpenseError: function(e) {
@@ -162,11 +149,21 @@
             console.error(e);
         },
 
+        /**
+         * Send the new expense info.
+         * @param newExpenseEvent
+         * @private
+         */
         _addExpense: function(newExpenseEvent) {
             this._newExpense = newExpenseEvent.detail.expense;
             this.$.createExpenseAjax.generateRequest();
         },
 
+        /**
+         * On successful expense creation, add the expense to the tables.
+         * @param e
+         * @private
+         */
         _onCreateExpenseSuccess: function(e) {
             let newExpense = e.detail.response;
             this.push('expenses', newExpense);
@@ -177,12 +174,22 @@
             console.error(e);
         },
 
+        /**
+         * Send the expense to remove info.
+         * @param removeExpenseEvent
+         * @private
+         */
         _removeExpense: function(removeExpenseEvent) {
             this._expenseIdToDelete = removeExpenseEvent.detail.expenseId;//e.target.dataArgs;
             this.$.deleteExpenseAjax.generateRequest();
             this._indexOfExpenseToRemove = removeExpenseEvent.detail.indexOfExpense;
         },
 
+        /**
+         * On successful expense removal, remove the expense from the tables.
+         * @param e
+         * @private
+         */
         _onDeleteExpenseSuccess: function(e) {
             this.splice('expenses', this._indexOfExpenseToRemove, 1);
         },
@@ -194,20 +201,6 @@
 
         _getDeleteExpenseUrl: function(expenseId) {
             return "/api/expenses/" + expenseId;
-        },
-
-        _parseDateStringToObject: function(date) {
-            if (date) {
-                let dateParts = date.split('-');
-                return new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1 , parseInt(dateParts[2]));
-            }
-        },
-
-        _parseDateObjectToString: function(date) {
-            if (date) {
-                let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
-            }
         }
     });
 </script>

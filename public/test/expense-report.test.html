@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+    <script src="../bower_components/web-component-tester/browser.js"></script>
+    <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+
+    <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+    <link rel="import" href="../src/expense-report/expense-report.html">
+
+</head>
+<body>
+
+    <test-fixture id="expensereport">
+        <template>
+            <expense-report></expense-report>
+        </template>
+    </test-fixture>
+
+    <script>
+        describe('<expense-report>', function() {
+            let expenses;
+            let expenseReport;
+
+            beforeEach(function() {
+                expenses = [
+                    {
+                        "id": "987c76e7-94cc-4e80-ae32-46d6c2477ec6",
+                        "date": new Date(2017, 6, 5).getTime() , // July 5, 2017
+                        "username": "testuser3",
+                        "amount": 6,
+                        "description": "Sandwich"
+                    },
+                    {
+                        "id": "06f44f35-90c9-4552-8d65-bac20f8ea243",
+                        "date": new Date(2017, 6, 12).getTime(), // July 12, 2017
+                        "username": "testuser3",
+                        "amount": 5,
+                        "description": "Fries"
+                    },
+                    {
+                        "id": "beba5fba-173c-47c4-aa7a-c57379e5bed3",
+                        "date": new Date(2017, 6, 14).getTime(), // July 14, 2017
+                        "username": "testuser3",
+                        "amount": 8,
+                        "description": "Burger"
+                    }
+                ];
+
+                expenseReport = fixture('expensereport')
+            });
+
+            describe('when there are 2 expenses from one week and 1 expense from another week', function() {
+                it('should create 2 weekly summaries for both weeks', function() {
+                    expenseReport.loggedInUser = {username: "testuser3", role: "regular"};
+                    expenseReport.expenses = expenses;
+                    expenseReport.calculateWeeklySpends(new Date(2017, 6,1), new Date(2017, 6, 29));
+                    debugger;
+
+                    expect(expenseReport.querySelector('#items').children.length).to.equal(2);
+                });
+
+                describe('when a new expense is added to the second week', function() {
+                    it('should still create 2 weekly summaries for both weeks', function() {
+                        expenseReport.loggedInUser = {username: "testuser3", role: "regular"};
+                        expenses.push({
+                            "id": "beba5fba-173c-47c4-aa7a-c57379e5bed3",
+                            "date": new Date(2017, 6, 13).getTime(), // July 13, 2017
+                            "username": "testuser3",
+                            "amount": 8,
+                            "description": "Burger"
+                        });
+
+                        expenseReport.expenses = expenses;
+                        expenseReport.calculateWeeklySpends(new Date(2017, 6,1), new Date(2017, 6, 29));
+
+                        expect(expenseReport.querySelector('#items').children.length).to.equal(2);
+                    })
+                })
+            });
+
+            describe('when an admin user is logged in', function() {
+                it('should only create a weekly summary for expenses belonging to that user', function() {
+                    expenseReport.loggedInUser = {username: "admin", role: "admin"};
+                    expenses.push({
+                        "id": "beba5fba-173c-47c4-aa7a-c57379e5bed3",
+                        "date": new Date(2017, 6, 14).getTime(), // July 14, 2017
+                        "username": "admin",
+                        "amount": 8,
+                        "description": "Burger"
+                    });
+
+                    expenseReport.expenses = expenses;
+                    expenseReport.calculateWeeklySpends(new Date(2017, 6,1), new Date(2017, 6, 29));
+
+                    expect(expenseReport.querySelector('#items').children.length).to.equal(1);
+                })
+            })
+        });
+    </script>
+
+</body>
+</html>

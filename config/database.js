@@ -1,4 +1,6 @@
-// config/database.js
+/**
+ * Database credentials
+ */
 module.exports = {
     'connection': {
         'host': 'localhost',
